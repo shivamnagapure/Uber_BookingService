@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class BookingServiceImpl implements BookingService{
@@ -47,32 +48,56 @@ public class BookingServiceImpl implements BookingService{
 
 
     @Override
-    public CreateBookingResDto createBooking(CreateBookingReqDto bookingDetails) {
+    public Mono<CreateBookingResDto> createBooking(CreateBookingReqDto bookingDetails) {
         System.out.println("In create Booking");
+
         Optional<Passenger> passenger = passengerRepository.findPassengerById(bookingDetails.getPassengerId());
+
         NearbyDriverRequestDto requestDto = NearbyDriverRequestDto.builder()
                 .longitude(bookingDetails.getStartLocation().getLongitude())
                 .latitude(bookingDetails.getStartLocation().getLatitude())
                 .build();
 
-        getNearByDrivers(requestDto)
-                .subscribe(drivers -> System.out.println("All drivers: " + drivers));
+        return getNearByDrivers(requestDto)
+                .flatMap(drivers -> { // flatMap is from reactive WebFlux
+                    System.out.println("Nearby drivers: " + drivers);
 
-        //TODO 1: solve duplication problem of location service
-        Booking newBooking = Booking.builder()
-                .bookingStatus(BookingStatus.ASSIGNING_DRIVER)
-                .startLocation(bookingDetails.getStartLocation()) // Hibernate thinks each ExactLocation object is new because it has no ID.
-                .endLocation(bookingDetails.getEndLocation()) // And save it repeatedly
-                .passenger(passenger.get())
-                .build();
+                    //Build DTO to send to socket-service
+                    RideRequestDto rideRequest = RideRequestDto.builder()
+                            .bookingId(UUID.randomUUID().toString())
+                            .passengerId(bookingDetails.getPassengerId().toString())
+                            .pickupLat(bookingDetails.getStartLocation().getLatitude())
+                            .pickupLng(bookingDetails.getStartLocation().getLongitude())
+                            .nearbyDrivers(drivers) //full List
+                            .build();
 
-        Booking saveBooking = bookingRepository.save(newBooking);
-        System.out.println("Booking Save");
-        return CreateBookingResDto.builder()
-                .bookingId(newBooking.getId())
-                .bookingStatus(newBooking.getBookingStatus().toString())
-                .build();
+                    return webClient.post()
+                            .uri("http://UberSocketServer/api/socket/newride")
+                            .bodyValue(rideRequest)
+                            .retrieve()
+                            .bodyToMono(Boolean.class)
+                            .flatMap(res -> {
 
+                                //TODO 1: solve duplication problem of location service
+                                Booking newBooking = Booking.builder()
+                                        .bookingStatus(BookingStatus.ASSIGNING_DRIVER)
+                                        .startLocation(bookingDetails.getStartLocation()) // Hibernate thinks each ExactLocation object is new because it has no ID.
+                                        .endLocation(bookingDetails.getEndLocation()) // And save it repeatedly
+                                        .passenger(passenger.get())
+                                        .build();
+
+                                Booking saveBooking = bookingRepository.save(newBooking);
+
+                                System.out.println("Booking Save");
+                                return Mono.just(
+                                        CreateBookingResDto.builder()
+                                                .bookingId(newBooking.getId())
+                                                .bookingStatus(newBooking.getBookingStatus().toString())
+                                                .build()
+                                );
+
+                            });
+                });
     }
     //Problem : convert input data-Type string to enum
     //Solution : valueOf(String) converts string into corresponding enum constant

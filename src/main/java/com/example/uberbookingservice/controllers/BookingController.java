@@ -9,6 +9,7 @@ import com.example.uberprojectentityservice.models.Booking;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/va/booking")
@@ -21,10 +22,11 @@ public class BookingController {
     }
 
     @PostMapping
-    public ResponseEntity<CreateBookingResDto> createBooking(@RequestBody CreateBookingReqDto createBookingReqDto){
+    public Mono<ResponseEntity<CreateBookingResDto>> createBooking(@RequestBody CreateBookingReqDto createBookingReqDto){
         System.out.println(createBookingReqDto.getPassengerId());
-        CreateBookingResDto resDto = bookingService.createBooking(createBookingReqDto) ;
-        return ResponseEntity.status(HttpStatus.CREATED).body(resDto);
+
+        return bookingService.createBooking(createBookingReqDto)
+                .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
     }
 
     @PatchMapping("/{bookingId}")
@@ -32,6 +34,11 @@ public class BookingController {
                                                                   @RequestBody BookingUpdateRequest request){
         BookingUpdateResponseDto updatedBooking  = bookingService.updateBooking(bookingId , request);
         return ResponseEntity.ok(updatedBooking);
+    }
+
+    @PostMapping("/driver-response")
+    public ResponseEntity<CreateBookingResDto> handleDriverResponse(@RequestBody CreateBookingResDto response){
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
 }

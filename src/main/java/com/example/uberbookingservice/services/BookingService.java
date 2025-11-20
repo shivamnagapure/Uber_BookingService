@@ -5,10 +5,11 @@ import com.example.uberbookingservice.dto.BookingUpdateResponseDto;
 import com.example.uberbookingservice.dto.CreateBookingReqDto;
 import com.example.uberbookingservice.dto.CreateBookingResDto;
 import com.example.uberprojectentityservice.models.Booking;
+import reactor.core.publisher.Mono;
 
 public interface BookingService {
 
-    CreateBookingResDto createBooking(CreateBookingReqDto bookingDetails) ;
+    Mono<CreateBookingResDto> createBooking(CreateBookingReqDto bookingDetails) ;
 
     BookingUpdateResponseDto updateBooking(Long bookingId , BookingUpdateRequest updateRequest);
 }
