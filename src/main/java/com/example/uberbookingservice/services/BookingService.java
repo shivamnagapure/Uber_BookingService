@@ -12,4 +12,6 @@ public interface BookingService {
     Mono<CreateBookingResDto> createBooking(CreateBookingReqDto bookingDetails) ;
 
     BookingUpdateResponseDto updateBooking(Long bookingId , BookingUpdateRequest updateRequest);
+
+    void updateDriverAssignmentAndNotify(Long bookingId , Long driverId);
 }

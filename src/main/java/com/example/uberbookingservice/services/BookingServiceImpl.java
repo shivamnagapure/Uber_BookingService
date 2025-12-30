@@ -24,14 +24,17 @@ public class BookingServiceImpl implements BookingService{
     private final BookingRepository bookingRepository;
     private final PassengerRepository passengerRepository;
     private final DriverRepository driverRepository ;
+    private final SocketRestClient socketRestClient ;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
                               PassengerRepository passengerRepository,
                               DriverRepository driverRepository ,
+                              SocketRestClient socketRestClient,
                               @LoadBalanced WebClient.Builder webClientBuilder) {  // Inject Builder
         this.bookingRepository = bookingRepository;
         this.passengerRepository = passengerRepository;
         this.driverRepository = driverRepository ;
+        this.socketRestClient = socketRestClient ;
         this.webClient = webClientBuilder.build();  // Build WebClient instance
     }
 
@@ -64,7 +67,6 @@ public class BookingServiceImpl implements BookingService{
 
                     //Build DTO to send to socket-service
                     RideRequestDto rideRequest = RideRequestDto.builder()
-                            .bookingId(UUID.randomUUID().toString())
                             .passengerId(bookingDetails.getPassengerId().toString())
                             .pickupLat(bookingDetails.getStartLocation().getLatitude())
                             .pickupLng(bookingDetails.getStartLocation().getLongitude())
@@ -125,5 +127,27 @@ public class BookingServiceImpl implements BookingService{
                 .bookingStatus(booking.getBookingStatus().toString())
                 .driverId(booking.getDriver().getId())
                 .build();
+    }
+
+    public void updateDriverAssignmentAndNotify(Long bookingId , Long driverId ){
+
+        Booking booking = bookingRepository.findBookingsById(bookingId) ;
+        Driver driver = driverRepository.findDriversById(driverId);
+
+        //Update booking in DB
+        booking.setDriver(driver);
+        booking.setBookingStatus(BookingStatus.valueOf("ASSIGNED"));
+        bookingRepository.save(booking);
+
+        //Prepare event object to send to Socket Service
+        DriverAssignedEvent event = new DriverAssignedEvent();
+        event.setBookingId(bookingId.toString());
+        event.setPassengerId(booking.getPassenger().getId().toString());
+        event.setDriverId(driverId.toString());
+
+        //Notify socket server to send update to passenger
+        socketRestClient.notifyPassenger(event);
+
+        System.out.println("Notified");
     }
 }

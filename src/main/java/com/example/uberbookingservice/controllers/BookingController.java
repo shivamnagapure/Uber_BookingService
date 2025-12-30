@@ -1,11 +1,7 @@
 package com.example.uberbookingservice.controllers;
 
-import com.example.uberbookingservice.dto.BookingUpdateRequest;
-import com.example.uberbookingservice.dto.BookingUpdateResponseDto;
-import com.example.uberbookingservice.dto.CreateBookingReqDto;
-import com.example.uberbookingservice.dto.CreateBookingResDto;
+import com.example.uberbookingservice.dto.*;
 import com.example.uberbookingservice.services.BookingService;
-import com.example.uberprojectentityservice.models.Booking;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +33,8 @@ public class BookingController {
     }
 
     @PostMapping("/driver-response")
-    public ResponseEntity<CreateBookingResDto> handleDriverResponse(@RequestBody CreateBookingResDto response){
+    public ResponseEntity<DriverResponseDto> handleDriverResponse(@RequestBody DriverResponseDto response){
+        bookingService.updateDriverAssignmentAndNotify(response.getBookingId() , response.getDriverId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
