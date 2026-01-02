@@ -1,7 +1,7 @@
 #Problem : registering Entity Service , instead of Booking Service through yml file
 
 server:
-  port: 8001
+  port: ${PORT:8001}
 
 spring:
   application:
@@ -20,7 +20,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone:  ${EUREKA_URL}
     register-with-eureka: true
     fetch-registry: true
 
