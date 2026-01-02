@@ -1,7 +1,7 @@
 #Problem : registering Entity Service , instead of Booking Service through yml file
 
 server:
-  port: ${PORT:8001}
+  port: ${PORT:8080}
 
 spring:
   application:
