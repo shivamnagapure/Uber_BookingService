@@ -8,9 +8,10 @@ spring:
     name: UberBookingService
 
   datasource:
-    url: jdbc:mysql://localhost:3306/Uber_Db_Local
-    username: root
-    password: Shivam@123
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     show-sql: true
